@@ -1,8 +1,14 @@
 // importing express
 const express = require('express')
+const cors = require('cors')
 
 // created a app instance from express
 const app = express()
+
+// CORS MIDDLEWARE
+app.use(cors({
+    origin: ['http://localhost:3000', 'https://assignment-project-one.vercel.app']
+}))
 
 // .use is called a middleware and here express.json() is parsing json data from the request.
 app.use(express.json())
