@@ -1,60 +1,92 @@
-// importing express
 const express = require('express')
 const cors = require('cors')
+const dotenv = require('dotenv')
+const mongoose = require('mongoose')
 
-// created a app instance from express
+dotenv.config({ path: './config.env' })
+
 const app = express()
 
-// CORS MIDDLEWARE
 app.use(cors({
     origin: ['http://localhost:3000', 'https://assignment-project-one.vercel.app']
 }))
 
-// .use is called a middleware and here express.json() is parsing json data from the request.
 app.use(express.json())
 
-// this port is used for development environments. you can use others ports like: 4000, 8080, 5000 etc
 const port = 1337
+const url = process.env.DATABASE_URL
+
+// user schema
+
+const userSchema = new mongoose.Schema({
+    firstName: String,
+    lastName: String,
+    email: String,
+    password: String
+})
+
+const User = mongoose.model('User', userSchema)
 
 
-// this is a simple get request. when the user will request on http://localhost:1337 then user will get a json response saying 'Hello World!'
+mongoose
+    .set('strictQuery', false)
+    .connect(url, (err) => {
+        if (err) {
+            console.log("err", err)
+        }
+    })
+
 app.get('/', (req, res) => {
     res.send('Hello World!')
 })
 
-// registration: post request
-app.post('/signup', (req, res) => {
-    // req.body is an object coming through request on this /signup endpoint
-    const { firstName, lastName, email, password, confirmPassword } = req.body
 
-    // after all work like validating and storing user to database(will implement soon) user will get a json response.
-    res.json({
-        status: 'success',
-        data: {
-            user: {
-                firstName,
-                lastName,
-                email,
-            }
-        }
-    })
+app.post('/signup', (req, res) => {
+    const { firstName, lastName, email, password, confirmPassword } = req.body
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+        return res.json({
+            status: 'fail',
+            message: 'All input fields are required!'
+        })
+    }
+
+    User.create(req.body)
+        .then(result => {
+            res.json({
+                status: 'success',
+                data: {
+                    user: result
+                }
+            })
+        })
 })
 
-// login: post request
 app.post('/login', (req, res) => {
     const { email, password } = req.body
-    res.json({
-        status: 'success',
-        data: {
-            user: {
-                email,
+    if (!email || !password) {
+        return res.json({
+            status: 'fail',
+            message: 'All input fields are required!'
+        })
+    }
+    User
+        .findOne({ email, password })
+        .then(result => {
+            if (!result) {
+                return res.json({
+                    status: 'fail',
+                    message: 'Invalid email or password!'
+                })
             }
-        }
-    })
+            res.json({
+                status: 'success',
+                data: {
+                    user: result
+                }
+            })
+        })
 })
 
-
-// app.listen is for starting the server. it take a port and a callback function as arguments.
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 })
